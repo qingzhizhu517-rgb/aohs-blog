@@ -24,17 +24,5 @@ export const photos = [
       "全栈"
     ],
     "category": "fullstack"
-  },
-  {
-    "id": "photo-4",
-    "imageUrl": "https://images.unsplash.com/photo-1511512578047-dfb367046420?auto=format&fit=crop&w=800&q=80",
-    "title": "独立开发者的周末：黑客马拉松",
-    "description": "背上电脑找了一家安静的咖啡馆，花了一天时间编写了一个轻量级 Markdown 解析模块，写代码的感觉就像在用指尖弹奏钢琴。",
-    "date": "2026-05-02",
-    "tags": [
-      "独立开发",
-      "生活碎碎念"
-    ],
-    "category": "thoughts"
   }
 ];
