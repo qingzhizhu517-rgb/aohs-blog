@@ -175,9 +175,7 @@ export default function AdminPanel({ setActiveTab }) {
       const response = await fetch(url, {
         headers: {
           "Authorization": `Bearer ${token}`,
-          "Accept": "application/vnd.github+json",
-          "Cache-Control": "no-cache",
-          "Pragma": "no-cache"
+          "Accept": "application/vnd.github+json"
         }
       });
 
@@ -233,9 +231,7 @@ export default function AdminPanel({ setActiveTab }) {
       const getResponse = await fetch(getUrl, {
         headers: {
           "Authorization": `Bearer ${token}`,
-          "Accept": "application/vnd.github+json",
-          "Cache-Control": "no-cache",
-          "Pragma": "no-cache"
+          "Accept": "application/vnd.github+json"
         }
       });
 
