@@ -7,6 +7,7 @@ import PostDetail from "./components/PostDetail";
 import PhotoDiary from "./components/PhotoDiary";
 import ProjectsSection from "./components/ProjectsSection";
 import AboutSection from "./components/AboutSection";
+import AdminPanel from "./components/AdminPanel";
 import Footer from "./components/Footer";
 
 function App() {
@@ -48,6 +49,8 @@ function App() {
         return <ProjectsSection />;
       case "about":
         return <AboutSection />;
+      case "admin":
+        return <AdminPanel setActiveTab={handleTabChange} />;
       default:
         return <HeroSection setActiveTab={handleTabChange} />;
     }
@@ -69,7 +72,7 @@ function App() {
       </main>
 
       {/* Footer System Panel */}
-      <Footer />
+      <Footer setActiveTab={handleTabChange} />
     </>
   );
 }

@@ -1,7 +1,7 @@
 import React from "react";
 import { Terminal, Shield, Cpu } from "lucide-react";
 
-export default function Footer() {
+export default function Footer({ setActiveTab }) {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -56,9 +56,35 @@ export default function Footer() {
               <span>Canvas 2D</span>
               <span>Lucide Icons</span>
             </div>
-            <div className="secure-badge">
-              <Shield size={12} />
-              <span>SSL Encryption Enabled</span>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <div className="secure-badge">
+                <Shield size={12} />
+                <span>SSL Encryption Enabled</span>
+              </div>
+              {setActiveTab && (
+                <div 
+                  className="secure-badge" 
+                  style={{ 
+                    cursor: "pointer", 
+                    color: "var(--neon-purple)", 
+                    borderColor: "rgba(139, 92, 246, 0.3)",
+                    background: "rgba(139, 92, 246, 0.05)",
+                    transition: "all 0.2s ease"
+                  }}
+                  onClick={() => setActiveTab("admin")}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = "rgba(139, 92, 246, 0.15)";
+                    e.currentTarget.style.color = "var(--neon-pink)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = "rgba(139, 92, 246, 0.05)";
+                    e.currentTarget.style.color = "var(--neon-purple)";
+                  }}
+                >
+                  <Terminal size={12} />
+                  <span>[ENTER_CONSOLE]</span>
+                </div>
+              )}
             </div>
           </div>
         </div>
