@@ -1,22 +1,5 @@
 export const projects = [
   {
-    "id": "project-2",
-    "name": "ai-prompt-studio",
-    "description": "面向大语言模型（LLM）的提示词可视化编辑器与版本控制工具。支持模板热替换、输入变量自动识别、以及多大模型 API 同步测试。",
-    "stars": 342,
-    "forks": 48,
-    "language": "React",
-    "languageColor": "#61dafb",
-    "link": "https://github.com/Aohs/ai-prompt-studio",
-    "tags": [
-      "LLM",
-      "Prompt Engineering",
-      "React"
-    ],
-    "type": "github",
-    "status": "completed"
-  },
-  {
     "id": "project-3",
     "name": "fullstack-blog-framework",
     "description": "基于 React 19 和 Node.js 的全双工微型博客开发套件，内置秒级静态生成（SSG）、增量静态再生（ISR）和全站赛博暗黑主题系统。",
