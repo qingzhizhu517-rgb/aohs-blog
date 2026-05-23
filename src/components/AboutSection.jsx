@@ -83,7 +83,6 @@ export default function AboutSection() {
                 </div>
               )}
             </div>
-            <div className="avatar-pulse-circle" />
 
             {about.avatars && about.avatars.length > 1 && (
               <div className="avatar-carousel-dots" style={{ zIndex: 12 }}>
