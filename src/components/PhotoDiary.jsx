@@ -45,7 +45,7 @@ export default function PhotoDiary() {
             {/* Image Wrapper */}
             <div className="photo-img-wrapper">
               <img
-                src={photo.imageUrl}
+                src={photo.imageUrl || photo.image}
                 alt={photo.title}
                 className="photo-img"
                 loading="lazy"
@@ -70,7 +70,7 @@ export default function PhotoDiary() {
               <p className="photo-card-description">{photo.description}</p>
               
               <div className="photo-tags">
-                {photo.tags.map((tag, idx) => (
+                {(photo.tags || []).map((tag, idx) => (
                   <span key={idx} className="photo-tag-pill">
                     #{tag}
                   </span>
@@ -97,7 +97,7 @@ export default function PhotoDiary() {
             <div className="lightbox-grid">
               {/* Image Left */}
               <div className="lightbox-image-side">
-                <img src={selectedPhoto.imageUrl} alt={selectedPhoto.title} />
+                <img src={selectedPhoto.imageUrl || selectedPhoto.image} alt={selectedPhoto.title} />
               </div>
 
               {/* Text Right */}
@@ -116,7 +116,7 @@ export default function PhotoDiary() {
                 <p className="lightbox-description">{selectedPhoto.description}</p>
 
                 <div className="lightbox-tags">
-                  {selectedPhoto.tags.map((tag, idx) => (
+                  {(selectedPhoto.tags || []).map((tag, idx) => (
                     <span key={idx} className="tag-pill">
                       #{tag}
                     </span>
@@ -125,7 +125,7 @@ export default function PhotoDiary() {
 
                 {/* Footer details */}
                 <div className="lightbox-footer">
-                  <span className="lightbox-category">分类: {selectedPhoto.category.toUpperCase()}</span>
+                  <span className="lightbox-category">分类: {(selectedPhoto.category || "").toUpperCase()}</span>
                   <button
                     className={`lightbox-like-action ${likesMap[selectedPhoto.id] ? "liked" : ""}`}
                     onClick={(e) => toggleLike(selectedPhoto.id, e)}
