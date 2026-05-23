@@ -589,6 +589,24 @@ export default function AdminPanel({ setActiveTab }) {
     pushDataToGit(null, aiConfigState);
   };
 
+  // Reset AI endpoint to default
+  const resetAiConfig = () => {
+    setAiConfigState(prev => ({
+      ...prev,
+      endpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+    }));
+    addLog("CMS_SETTINGS", "Reset API endpoint to default gemini-1.5-flash.", "sys");
+  };
+
+  // Handle preset model selection
+  const handleModelChange = (modelName) => {
+    setAiConfigState(prev => ({
+      ...prev,
+      endpoint: `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent`
+    }));
+    addLog("CMS_SETTINGS", `Switched target model to ${modelName}.`, "sys");
+  };
+
   return (
     <div className="admin-container">
       {/* Header Info */}
@@ -880,6 +898,31 @@ export default function AdminPanel({ setActiveTab }) {
                     <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: "4px", display: "block" }}>
                       建议使用无扣费信用卡的免费额度 API Key (15 RPM / 1500 RPD)，避免密钥暴露带来的经济风险。
                     </span>
+                  </div>
+
+                  <div className="admin-grid-two-cols">
+                    <div className="admin-form-group">
+                      <label className="admin-label">推荐模型预设 (Model Preset)</label>
+                      <select 
+                        className="admin-select"
+                        onChange={(e) => handleModelChange(e.target.value)}
+                        defaultValue="gemini-1.5-flash"
+                      >
+                        <option value="gemini-1.5-flash">gemini-1.5-flash (默认/推荐)</option>
+                        <option value="gemini-2.0-flash">gemini-2.0-flash (最新高速版)</option>
+                        <option value="gemini-2.5-flash">gemini-2.5-flash (超强能版)</option>
+                      </select>
+                    </div>
+                    <div className="admin-form-group" style={{ display: "flex", alignItems: "flex-end" }}>
+                      <button 
+                        type="button" 
+                        className="cyber-btn btn-secondary" 
+                        onClick={resetAiConfig}
+                        style={{ width: "100%", padding: "10px", fontSize: "0.8rem", height: "42px", justifyContent: "center" }}
+                      >
+                        重置为默认端点
+                      </button>
+                    </div>
                   </div>
 
                   <div className="admin-form-group">

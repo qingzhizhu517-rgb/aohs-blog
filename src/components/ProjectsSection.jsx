@@ -222,7 +222,7 @@ export default function ProjectsSection() {
 
             {/* Tags */}
             <div className="repo-tags">
-              {proj.tags.map((tag, idx) => (
+              {(proj.tags || proj.tech || []).map((tag, idx) => (
                 <span key={idx} className="repo-tag">
                   {tag}
                 </span>
