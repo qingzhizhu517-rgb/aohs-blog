@@ -170,11 +170,14 @@ export default function AdminPanel({ setActiveTab }) {
     addLog("API_GET", `Fetching ${path} from branch: ${branch}...`, "sys");
 
     try {
-      const url = `https://api.github.com/repos/${username}/${repo}/contents/${path}?ref=${branch}`;
+      // Add timestamp to query to force bypass of browser caching
+      const url = `https://api.github.com/repos/${username}/${repo}/contents/${path}?ref=${branch}&_t=${Date.now()}`;
       const response = await fetch(url, {
         headers: {
           "Authorization": `Bearer ${token}`,
-          "Accept": "application/vnd.github+json"
+          "Accept": "application/vnd.github+json",
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache"
         }
       });
 
@@ -225,12 +228,14 @@ export default function AdminPanel({ setActiveTab }) {
     addLog("API_PUT", `Preparing to write ${path} to remote branch ${branch}...`, "sys");
 
     try {
-      // 1. Fetch current file SHA first
-      const getUrl = `https://api.github.com/repos/${username}/${repo}/contents/${path}?ref=${branch}`;
+      // 1. Fetch current file SHA first (force bypass browser cache to get the latest SHA)
+      const getUrl = `https://api.github.com/repos/${username}/${repo}/contents/${path}?ref=${branch}&_t=${Date.now()}`;
       const getResponse = await fetch(getUrl, {
         headers: {
           "Authorization": `Bearer ${token}`,
-          "Accept": "application/vnd.github+json"
+          "Accept": "application/vnd.github+json",
+          "Cache-Control": "no-cache",
+          "Pragma": "no-cache"
         }
       });
 
