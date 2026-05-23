@@ -1,5 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { ArrowRight, Terminal, BookOpen, Camera, Award } from "lucide-react";
+import { posts } from "../data/posts";
+import { photos } from "../data/photos";
+import { projects } from "../data/projects";
 
 export default function HeroSection({ setActiveTab }) {
   const [typedText, setTypedText] = useState("");
@@ -18,9 +21,9 @@ export default function HeroSection({ setActiveTab }) {
   }, []);
 
   const stats = [
-    { label: "项目研发", val: "12+", icon: <Terminal className="text-cyan" />, tab: "projects" },
-    { label: "技术文章", val: "30+", icon: <BookOpen className="text-purple" />, tab: "blog" },
-    { label: "配图随笔", val: "50+", icon: <Camera className="text-pink" />, tab: "photos" },
+    { label: "项目研发", val: `${projects.length}+`, icon: <Terminal className="text-cyan" />, tab: "projects" },
+    { label: "技术文章", val: `${posts.length}+`, icon: <BookOpen className="text-purple" />, tab: "blog" },
+    { label: "配图随笔", val: `${photos.length}+`, icon: <Camera className="text-pink" />, tab: "photos" },
   ];
 
   return (

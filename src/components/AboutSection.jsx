@@ -1,14 +1,8 @@
 import React from "react";
 import { User, Briefcase, GraduationCap, Mail, Globe, Sparkles, Cpu, Layout, BrainCircuit, Lightbulb, Compass, Award } from "lucide-react";
+import { skills } from "../data/skills";
 
 export default function AboutSection() {
-  const skills = [
-    { name: "Java / Spring Boot / Redis (后端架构)", percent: 90, color: "#3b82f6" },
-    { name: "Vue 3 / Vite / Pinia (现代前端)", percent: 92, color: "#06b6d4" },
-    { name: "HarmonyOS / ArkTS / 微信小程序", percent: 80, color: "#10b981" },
-    { name: "AI Agent / Coze / Prompt (智能体开发)", percent: 85, color: "#8b5cf6" },
-    { name: "UI/UX / 极简用户直觉设计", percent: 88, color: "#ec4899" },
-  ];
 
   const timeline = [
     {

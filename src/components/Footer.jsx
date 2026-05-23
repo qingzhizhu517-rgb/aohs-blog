@@ -1,5 +1,6 @@
 import React from "react";
 import { Terminal, Shield, Cpu } from "lucide-react";
+import { skills } from "../data/skills";
 
 export default function Footer({ setActiveTab }) {
   const currentYear = new Date().getFullYear();
@@ -47,14 +48,12 @@ export default function Footer({ setActiveTab }) {
           {/* Technologies Used info */}
           <div className="footer-section tech-section">
             <h4 className="footer-title flex-align">
-              <Cpu size={14} className="accent-cyan" /> 核心架构
+              <Cpu size={14} className="accent-cyan" /> 技术栈
             </h4>
             <div className="tech-tags">
-              <span>React 19</span>
-              <span>Vite</span>
-              <span>Vanilla CSS</span>
-              <span>Canvas 2D</span>
-              <span>Lucide Icons</span>
+              {skills.flatMap(s => s.tags).map((tag, idx) => (
+                <span key={idx}>{tag}</span>
+              ))}
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               <div className="secure-badge">
