@@ -3840,6 +3840,14 @@ a {
 }
 
 /* Responsive Media Queries */
+.hero-left-col .hero-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: flex-start;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
 @media (max-width: 968px) {
   .hero-split-layout {
     grid-template-columns: 1fr;
@@ -3851,7 +3859,7 @@ a {
   }
   .hero-left-col .hero-title {
     text-align: center;
-    font-size: 4rem;
+    font-size: 3.8rem;
   }
   .hero-left-col .hero-subtitle {
     text-align: center;
@@ -3859,8 +3867,8 @@ a {
   .hero-left-col .hero-typing-box {
     margin: 0 auto 32px;
   }
-  .hero-actions {
-    justify-content: center !important;
+  .hero-left-col .hero-actions {
+    justify-content: center;
   }
   .terminal-quick-triggers {
     justify-content: center;
@@ -3869,9 +3877,39 @@ a {
   .stats-grid-glass {
     grid-template-columns: repeat(2, 1fr);
   }
-  
-  .feeds-grid-layout {
-    grid-template-columns: 1fr;
+}
+
+@media (max-width: 720px) {
+  .admin-grid-two-cols {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 580px) {
+  .hero-left-col .hero-title {
+    font-size: 2.6rem !important;
+    letter-spacing: -0.5px;
+    margin-bottom: 12px;
+  }
+  .hero-left-col .hero-subtitle {
+    font-size: 1.15rem !important;
+    margin-bottom: 16px;
+  }
+  .hero-left-col .hero-typing-box {
+    font-size: 0.85rem !important;
+    padding: 10px 14px;
+    margin-bottom: 24px;
+  }
+  .hero-left-col .hero-actions {
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    align-items: center;
+  }
+  .hero-left-col .hero-actions .cyber-btn {
+    width: 80% !important;
+    justify-content: center;
   }
 }
 
@@ -3882,6 +3920,25 @@ a {
   .terminal-footer-grid {
     flex-direction: column;
     align-items: flex-start;
+  }
+}
+
+@media (max-width: 480px) {
+  .admin-item-row {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px;
+  }
+  .admin-actions-cell {
+    width: 100% !important;
+    justify-content: flex-end;
+  }
+  .navbar-tabs {
+    gap: 0px;
+  }
+  .navbar-tab-btn {
+    padding: 6px 8px;
+    font-size: 0.75rem;
   }
 }
 

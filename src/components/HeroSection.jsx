@@ -143,7 +143,7 @@ export default function HeroSection({ setActiveTab, onPostSelect }) {
               <span className="typing-cursor">_</span>
             </p>
 
-            <div className="hero-actions" style={{ justifyContent: "flex-start" }}>
+            <div className="hero-actions">
               <button className="cyber-btn btn-primary" onClick={() => setActiveTab("blog")}>
                 浏览文章
                 <ArrowRight size={16} />
