@@ -123,14 +123,14 @@ export default function AboutSection() {
 
       {/* Tech Toolbox Details */}
       <h3 className="section-divider-title">
-        <Cpu size={16} /> 🛠️ 我的技术栈与工具箱
+        <Cpu size={16} /> 我的技术栈与工具箱
       </h3>
       <div className="tech-toolbox-grid">
         {/* Backend */}
         <div className="toolbox-card-glass">
           <div className="toolbox-header text-blue">
             <Cpu size={18} />
-            <h4>🧱 后端架构 & 核心技术</h4>
+            <h4>后端架构 & 核心技术</h4>
           </div>
           <ul className="toolbox-list">
             <li><strong>核心语言：</strong> 扎实的 Java 生态开发能力。</li>
@@ -144,7 +144,7 @@ export default function AboutSection() {
         <div className="toolbox-card-glass">
           <div className="toolbox-header text-cyan">
             <Layout size={18} />
-            <h4>🎨 前端交互 & 跨平台开发</h4>
+            <h4>前端交互 & 跨平台开发</h4>
           </div>
           <ul className="toolbox-list">
             <li><strong>现代 Web 前端：</strong> 采用 Vue 3 + Vite + Pinia 生态，追求组件化开发与极致的页面加载速度。</li>
@@ -157,7 +157,7 @@ export default function AboutSection() {
         <div className="toolbox-card-glass">
           <div className="toolbox-header text-purple">
             <BrainCircuit size={18} />
-            <h4>🤖 AI 工作流 & 智能体 (Agent) 探索</h4>
+            <h4>AI 工作流 & 智能体 (Agent) 探索</h4>
           </div>
           <ul className="toolbox-list text-left" style={{ margin: 0, padding: 0 }}>
             <p className="toolbox-intro-text" style={{ fontSize: "0.85rem", opacity: 0.8, marginBottom: "8px", borderBottom: "1px dashed rgba(255,255,255,0.1)", paddingBottom: "6px" }}>
@@ -175,7 +175,7 @@ export default function AboutSection() {
         {/* Explorations */}
         <div className="about-card-glass">
           <h3 className="card-title flex-align text-cyan" style={{ marginBottom: "20px" }}>
-            <Compass size={16} /> 💡 我的探索方向 & 博客内容
+            <Compass size={16} /> 我的探索方向 & 博客内容
           </h3>
           <p className="toolbox-intro-text" style={{ fontSize: "0.85rem", opacity: 0.8, marginBottom: "12px" }}>
             在这个博客里，我将毫无保留地分享我在技术和创意路上的所有踩坑记录与思考。你将会看到：
@@ -199,7 +199,7 @@ export default function AboutSection() {
         {/* Philosophy */}
         <div className="about-card-glass">
           <h3 className="card-title flex-align text-purple" style={{ marginBottom: "20px" }}>
-            <Lightbulb size={16} /> 🍃 个人特质与开发哲学
+            <Lightbulb size={16} /> 个人特质与开发哲学
           </h3>
           <p className="philosophy-quote" style={{ fontStyle: "italic", borderLeft: "2px solid var(--neon-purple)", paddingLeft: "8px", marginBottom: "12px" }}>“Keep it simple, keep it smart.”</p>
           <ul className="details-bullet-list">

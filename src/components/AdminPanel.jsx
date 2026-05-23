@@ -576,9 +576,9 @@ export default function AdminPanel({ setActiveTab }) {
               <>
                 <div className="admin-panel-header">
                   <h3 className="admin-panel-title">
-                    {activeSubTab === "posts" && "💡 文章数据列表 (Blog Posts)"}
-                    {activeSubTab === "photos" && "🎨 随笔图片列表 (Photo Logs)"}
-                    {activeSubTab === "projects" && "🧱 推荐项目列表 (Showcases)"}
+                    {activeSubTab === "posts" && "文章数据列表 (Blog Posts)"}
+                    {activeSubTab === "photos" && "随笔图片列表 (Photo Logs)"}
+                    {activeSubTab === "projects" && "推荐项目列表 (Showcases)"}
                   </h3>
                   <button className="cyber-btn btn-primary" onClick={handleAddNew} style={{ padding: "8px 16px", fontSize: "0.8rem" }}>
                     <Plus size={14} style={{ marginRight: "6px" }} />
@@ -673,7 +673,7 @@ export default function AdminPanel({ setActiveTab }) {
               <>
                 <div className="admin-panel-header">
                   <h3 className="admin-panel-title">
-                    {isNew ? "✨ 新建数据项 (Create Node)" : `📝 编辑数据项 (Edit Node) [${editItem?.id}]`}
+                    {isNew ? "新建数据项 (Create Node)" : `编辑数据项 (Edit Node) [${editItem?.id}]`}
                   </h3>
                   <button className="admin-icon-btn" onClick={() => setIsEditing(false)} title="取消">
                     <X size={16} />
