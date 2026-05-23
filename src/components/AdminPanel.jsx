@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { 
   Key, Folder, BookOpen, Image, Plus, Trash2, Save, X, 
-  RefreshCw, Eye, LogOut, ArrowLeft, Shield, Terminal, Cpu
+  RefreshCw, Eye, LogOut, ArrowLeft, Shield, Terminal, Cpu, User
 } from "lucide-react";
 import { posts as localPosts } from "../data/posts";
 import { photos as localPhotos } from "../data/photos";
 import { projects as localProjects } from "../data/projects";
 import { aiConfig as localAiConfig } from "../data/aiConfig";
+import { about as localAbout } from "../data/about";
 
 // Inline Github Icon SVG to avoid missing icon errors
 const GithubIcon = ({ size = 16, className = "" }) => (
@@ -128,6 +129,7 @@ export default function AdminPanel({ setActiveTab }) {
   // HTML content preview state
   const [previewContent, setPreviewContent] = useState("");
   const [aiConfigState, setAiConfigState] = useState({ apiKey: "", endpoint: "" });
+  const [aboutState, setAboutState] = useState({ name: "", tagline: "", avatars: [], bio: [], email: "", github: "", timeline: [] });
 
   const consoleEndRef = useRef(null);
 
@@ -220,6 +222,7 @@ export default function AdminPanel({ setActiveTab }) {
       case "photos": return "src/data/photos.js";
       case "projects": return "src/data/projects.js";
       case "settings": return "src/data/aiConfig.js";
+      case "about": return "src/data/about.js";
       default: return "src/data/posts.js";
     }
   };
@@ -247,18 +250,23 @@ export default function AdminPanel({ setActiveTab }) {
       const fileData = await response.json();
       const contentRaw = decodeBase64(fileData.content);
 
-      if (activeSubTab === "settings") {
+      if (activeSubTab === "settings" || activeSubTab === "about") {
         const startIdx = contentRaw.indexOf("{");
         const endIdx = contentRaw.lastIndexOf("}");
 
         if (startIdx === -1 || endIdx === -1) {
-          throw new Error("Unable to parse config file structure. Make sure it exports an object enclosed in {}.");
+          throw new Error("Unable to parse file structure. Make sure it exports an object enclosed in {}.");
         }
 
         const jsonText = contentRaw.substring(startIdx, endIdx + 1);
         const parsedObject = JSON.parse(jsonText);
-        setAiConfigState(parsedObject);
-        addLog("API_GET", `Successfully loaded AI settings configuration from GitHub.`, "succ");
+        if (activeSubTab === "settings") {
+          setAiConfigState(parsedObject);
+          addLog("API_GET", `Successfully loaded AI settings configuration from GitHub.`, "succ");
+        } else {
+          setAboutState(parsedObject);
+          addLog("API_GET", `Successfully loaded About Me content from GitHub.`, "succ");
+        }
       } else {
         // Parse the JS file exporting an array
         const startIdx = contentRaw.indexOf("[");
@@ -290,6 +298,8 @@ export default function AdminPanel({ setActiveTab }) {
         setProjects(localProjects);
       } else if (activeSubTab === "settings") {
         setAiConfigState(localAiConfig);
+      } else if (activeSubTab === "about") {
+        setAboutState(localAbout);
       }
     } finally {
       setLoading(false);
@@ -297,7 +307,7 @@ export default function AdminPanel({ setActiveTab }) {
   };
 
   // Push updated list to GitHub API
-  const pushDataToGit = async (updatedArray, updatedConfig = null) => {
+  const pushDataToGit = async (updatedArray, updatedConfig = null, updatedAbout = null) => {
     setLoading(true);
     const path = getFilePath();
     addLog("API_PUT", `Preparing to write ${path} to remote branch ${branch}...`, "sys");
@@ -324,6 +334,8 @@ export default function AdminPanel({ setActiveTab }) {
       let fileString = "";
       if (activeSubTab === "settings") {
         fileString = `export const aiConfig = ${JSON.stringify(updatedConfig, null, 2)};\n`;
+      } else if (activeSubTab === "about") {
+        fileString = `export const about = ${JSON.stringify(updatedAbout, null, 2)};\n`;
       } else {
         const varName = activeSubTab;
         fileString = `export const ${varName} = ${JSON.stringify(updatedArray, null, 2)};\n`;
@@ -333,6 +345,8 @@ export default function AdminPanel({ setActiveTab }) {
       const putUrl = `https://api.github.com/repos/${username}/${repo}/contents/${path}`;
       const commitMessage = activeSubTab === "settings"
         ? `feat(cms): update AI API configurations`
+        : activeSubTab === "about"
+        ? `feat(cms): update About Me profile details`
         : `feat(cms): update ${activeSubTab} database via visual console`;
 
       const putBody = {
@@ -363,6 +377,8 @@ export default function AdminPanel({ setActiveTab }) {
       // Update local states
       if (activeSubTab === "settings") {
         setAiConfigState(updatedConfig);
+      } else if (activeSubTab === "about") {
+        setAboutState(updatedAbout);
       } else {
         if (activeSubTab === "posts") setPosts(updatedArray);
         if (activeSubTab === "photos") setPhotos(updatedArray);
@@ -589,6 +605,12 @@ export default function AdminPanel({ setActiveTab }) {
     pushDataToGit(null, aiConfigState);
   };
 
+  // Submit About Me profile form
+  const handleAboutSubmit = (e) => {
+    e.preventDefault();
+    pushDataToGit(null, null, aboutState);
+  };
+
   // Reset AI endpoint to default
   const resetAiConfig = () => {
     setAiConfigState(prev => ({
@@ -785,6 +807,13 @@ export default function AdminPanel({ setActiveTab }) {
                 项目仓库 (Projects)
               </button>
               <button 
+                className={`admin-nav-btn ${activeSubTab === "about" ? "active" : ""}`}
+                onClick={() => { setActiveSubTab("about"); setIsEditing(false); }}
+              >
+                <User size={16} />
+                关于我 (About)
+              </button>
+              <button 
                 className={`admin-nav-btn ${activeSubTab === "settings" ? "active" : ""}`}
                 onClick={() => { setActiveSubTab("settings"); setIsEditing(false); }}
               >
@@ -829,7 +858,7 @@ export default function AdminPanel({ setActiveTab }) {
               </div>
             )}
 
-            {!isEditing && activeSubTab !== "settings" ? (
+            {!isEditing && activeSubTab !== "settings" && activeSubTab !== "about" ? (
               /* Lists management mode */
               <>
                 <div className="admin-panel-header">
@@ -1098,6 +1127,311 @@ export default function AdminPanel({ setActiveTab }) {
                     <button type="submit" className="cyber-btn btn-primary" style={{ padding: "10px 20px" }}>
                       <Save size={14} style={{ marginRight: "8px" }} />
                       保存并提交配置 Git Commit (Save Config)
+                    </button>
+                  </div>
+                </form>
+              </>
+            ) : activeSubTab === "about" ? (
+              /* About form mode */
+              <>
+                <div className="admin-panel-header">
+                  <h3 className="admin-panel-title">关于我 个人主页管理 (About Profile)</h3>
+                </div>
+                <form onSubmit={handleAboutSubmit} style={{ display: "flex", flexDirection: "column", gap: "18px" }}>
+                  <div className="admin-grid-two-cols">
+                    <div className="admin-form-group">
+                      <label className="admin-label">博主姓名 (Name)</label>
+                      <input 
+                        type="text" 
+                        className="admin-input" 
+                        value={aboutState.name}
+                        onChange={(e) => setAboutState(prev => ({ ...prev, name: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="admin-form-group">
+                      <label className="admin-label">个性签名/副标题 (Tagline)</label>
+                      <input 
+                        type="text" 
+                        className="admin-input" 
+                        value={aboutState.tagline}
+                        onChange={(e) => setAboutState(prev => ({ ...prev, tagline: e.target.value }))}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="admin-grid-two-cols">
+                    <div className="admin-form-group">
+                      <label className="admin-label">联系邮箱 (Email)</label>
+                      <input 
+                        type="email" 
+                        className="admin-input" 
+                        value={aboutState.email}
+                        onChange={(e) => setAboutState(prev => ({ ...prev, email: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="admin-form-group">
+                      <label className="admin-label">GitHub 地址 (GitHub Link)</label>
+                      <input 
+                        type="text" 
+                        className="admin-input" 
+                        value={aboutState.github}
+                        onChange={(e) => setAboutState(prev => ({ ...prev, github: e.target.value }))}
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Avatars Manager with Drag & Drop */}
+                  <div className="admin-form-group">
+                    <label className="admin-label">个人头像列表 (Avatars - 拖放可上传多张头像实现轮播)</label>
+                    
+                    <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "12px" }}>
+                      {aboutState.avatars?.map((av, idx) => (
+                        <div key={idx} style={{ position: "relative", width: "80px", height: "80px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", overflow: "hidden" }}>
+                          <img src={av} alt="avatar-slide" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          <button 
+                            type="button" 
+                            style={{ position: "absolute", top: "2px", right: "2px", background: "rgba(239, 68, 68, 0.9)", border: "none", color: "white", borderRadius: "50%", width: "18px", height: "18px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "10px" }}
+                            onClick={() => {
+                              const newAvatars = aboutState.avatars.filter((_, i) => i !== idx);
+                              setAboutState(prev => ({ ...prev, avatars: newAvatars }));
+                              addLog("CMS_ABOUT", `Removed avatar slide index ${idx}`, "sys");
+                            }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div
+                      style={{
+                        border: "2px dashed var(--neon-cyan)",
+                        borderRadius: "10px",
+                        padding: "20px",
+                        textAlign: "center",
+                        background: "rgba(6, 182, 212, 0.02)",
+                        cursor: "pointer",
+                        transition: "all 0.2s ease"
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.style.borderColor = "var(--neon-pink)";
+                        e.currentTarget.style.background = "rgba(236, 72, 153, 0.05)";
+                      }}
+                      onDragLeave={(e) => {
+                        e.preventDefault();
+                        e.currentTarget.style.borderColor = "var(--neon-cyan)";
+                        e.currentTarget.style.background = "rgba(6, 182, 212, 0.02)";
+                      }}
+                      onDrop={async (e) => {
+                        e.preventDefault();
+                        e.currentTarget.style.borderColor = "var(--neon-cyan)";
+                        e.currentTarget.style.background = "rgba(6, 182, 212, 0.02)";
+                        const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/"));
+                        if (files.length === 0) return;
+                        
+                        setLoading(true);
+                        try {
+                          const uploadedUrls = [];
+                          for (const file of files) {
+                            const url = await uploadImageToGitHub(file);
+                            uploadedUrls.push(url);
+                          }
+                          setAboutState(prev => ({
+                            ...prev,
+                            avatars: [...(prev.avatars || []), ...uploadedUrls]
+                          }));
+                          addLog("CMS_ABOUT", `Successfully uploaded ${files.length} new avatar(s)!`, "succ");
+                        } catch (err) {
+                          alert(`上传头像失败: ${err.message}`);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                    >
+                      <input 
+                        type="file" 
+                        multiple 
+                        accept="image/*" 
+                        style={{ display: "none" }} 
+                        id="about-avatars-file-input"
+                        onChange={async (e) => {
+                          const files = Array.from(e.target.files).filter(f => f.type.startsWith("image/"));
+                          if (files.length === 0) return;
+                          
+                          setLoading(true);
+                          try {
+                            const uploadedUrls = [];
+                            for (const file of files) {
+                              const url = await uploadImageToGitHub(file);
+                              uploadedUrls.push(url);
+                            }
+                            setAboutState(prev => ({
+                              ...prev,
+                              avatars: [...(prev.avatars || []), ...uploadedUrls]
+                            }));
+                            addLog("CMS_ABOUT", `Successfully uploaded ${files.length} new avatar(s)!`, "succ");
+                          } catch (err) {
+                            alert(`上传头像失败: ${err.message}`);
+                          } finally {
+                            setLoading(false);
+                          }
+                        }}
+                      />
+                      <label htmlFor="about-avatars-file-input" style={{ cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                        <Image size={24} className="accent-cyan" />
+                        <span className="admin-label" style={{ marginBottom: 0, color: "var(--text-primary)", fontWeight: 600 }}>
+                          拖入一张或多张个人头像到这里，或点击浏览选择
+                        </span>
+                        <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                          上传多张头像后，个人主页头像框将自动开启轮播效果
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Biography (Bio Paragraphs) */}
+                  <div className="admin-form-group">
+                    <label className="admin-label">关于我 个人简介段落 (Biography - 双换行分割段落)</label>
+                    <textarea 
+                      className="admin-textarea"
+                      style={{ minHeight: "120px" }}
+                      value={aboutState.bio?.join("\n\n") || ""}
+                      onChange={(e) => {
+                        const paras = e.target.value.split("\n\n");
+                        setAboutState(prev => ({ ...prev, bio: paras }));
+                      }}
+                      placeholder="第一段简介...&#10;&#10;第二段简介 (使用两个回车键换行分隔段落)..."
+                      required
+                    />
+                  </div>
+
+                  {/* Timeline Node List */}
+                  <div className="admin-form-group" style={{ border: "1px solid rgba(255,255,255,0.06)", padding: "16px", borderRadius: "10px", background: "rgba(255,255,255,0.01)" }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+                      <label className="admin-label" style={{ marginBottom: 0, fontSize: "0.95rem" }}>编年史事件列表 (Timeline Milestones)</label>
+                      <button 
+                        type="button" 
+                        className="cyber-btn btn-secondary" 
+                        style={{ padding: "6px 12px", fontSize: "0.75rem" }}
+                        onClick={() => {
+                          const newTimeline = [...(aboutState.timeline || []), { year: "2026", role: "新角色", company: "新机构", type: "work", desc: "详细描述..." }];
+                          setAboutState(prev => ({ ...prev, timeline: newTimeline }));
+                        }}
+                      >
+                        <Plus size={12} style={{ marginRight: "4px" }} />
+                        增加事件节点
+                      </button>
+                    </div>
+
+                    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                      {aboutState.timeline?.map((item, idx) => (
+                        <div key={idx} style={{ border: "1px dashed rgba(255,255,255,0.08)", padding: "12px", borderRadius: "8px", background: "rgba(0,0,0,0.2)" }}>
+                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "10px" }}>
+                            <span style={{ fontSize: "0.75rem", fontFamily: "var(--font-mono)", color: "var(--neon-purple)" }}>节点 #{idx + 1}</span>
+                            <button 
+                              type="button" 
+                              className="admin-icon-btn btn-delete" 
+                              style={{ padding: "4px" }}
+                              onClick={() => {
+                                const newTimeline = aboutState.timeline.filter((_, i) => i !== idx);
+                                setAboutState(prev => ({ ...prev, timeline: newTimeline }));
+                              }}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+
+                          <div className="admin-grid-two-cols" style={{ marginBottom: "8px" }}>
+                            <div className="admin-form-group">
+                              <label className="admin-label" style={{ fontSize: "0.75rem" }}>年份段 (Year)</label>
+                              <input 
+                                type="text" 
+                                className="admin-input" 
+                                style={{ padding: "6px 10px", fontSize: "0.8rem" }}
+                                value={item.year}
+                                onChange={(e) => {
+                                  const updatedTimeline = aboutState.timeline.map((t, i) => i === idx ? { ...t, year: e.target.value } : t);
+                                  setAboutState(prev => ({ ...prev, timeline: updatedTimeline }));
+                                }}
+                                required
+                              />
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-label" style={{ fontSize: "0.75rem" }}>工作岗位/职位 (Role)</label>
+                              <input 
+                                type="text" 
+                                className="admin-input" 
+                                style={{ padding: "6px 10px", fontSize: "0.8rem" }}
+                                value={item.role}
+                                onChange={(e) => {
+                                  const updatedTimeline = aboutState.timeline.map((t, i) => i === idx ? { ...t, role: e.target.value } : t);
+                                  setAboutState(prev => ({ ...prev, timeline: updatedTimeline }));
+                                }}
+                                required
+                              />
+                            </div>
+                          </div>
+
+                          <div className="admin-grid-two-cols" style={{ marginBottom: "8px" }}>
+                            <div className="admin-form-group">
+                              <label className="admin-label" style={{ fontSize: "0.75rem" }}>机构/公司 (Company)</label>
+                              <input 
+                                type="text" 
+                                className="admin-input" 
+                                style={{ padding: "6px 10px", fontSize: "0.8rem" }}
+                                value={item.company}
+                                onChange={(e) => {
+                                  const updatedTimeline = aboutState.timeline.map((t, i) => i === idx ? { ...t, company: e.target.value } : t);
+                                  setAboutState(prev => ({ ...prev, timeline: updatedTimeline }));
+                                }}
+                                required
+                              />
+                            </div>
+                            <div className="admin-form-group">
+                              <label className="admin-label" style={{ fontSize: "0.75rem" }}>类型 (Type)</label>
+                              <select 
+                                className="admin-select"
+                                style={{ padding: "6px 10px", fontSize: "0.8rem" }}
+                                value={item.type}
+                                onChange={(e) => {
+                                  const updatedTimeline = aboutState.timeline.map((t, i) => i === idx ? { ...t, type: e.target.value } : t);
+                                  setAboutState(prev => ({ ...prev, timeline: updatedTimeline }));
+                                }}
+                              >
+                                <option value="work">工作经历 (Work)</option>
+                                <option value="edu">教育经历 (Education)</option>
+                              </select>
+                            </div>
+                          </div>
+
+                          <div className="admin-form-group">
+                            <label className="admin-label" style={{ fontSize: "0.75rem" }}>具体工作描述 (Description)</label>
+                            <input 
+                              type="text" 
+                              className="admin-input" 
+                              style={{ padding: "6px 10px", fontSize: "0.8rem" }}
+                              value={item.desc}
+                              onChange={(e) => {
+                                  const updatedTimeline = aboutState.timeline.map((t, i) => i === idx ? { ...t, desc: e.target.value } : t);
+                                  setAboutState(prev => ({ ...prev, timeline: updatedTimeline }));
+                              }}
+                              required
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="form-button-row">
+                    <button type="submit" className="cyber-btn btn-primary" style={{ padding: "10px 20px" }}>
+                      <Save size={14} style={{ marginRight: "8px" }} />
+                      保存并提交个人资料 Git Commit (Save Profile)
                     </button>
                   </div>
                 </form>
