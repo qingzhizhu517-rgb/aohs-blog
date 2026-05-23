@@ -41,7 +41,7 @@ function App() {
 
     switch (activeTab) {
       case "home":
-        return <HeroSection setActiveTab={handleTabChange} />;
+        return <HeroSection setActiveTab={handleTabChange} onPostSelect={handlePostSelect} />;
       case "blog":
         return <BlogSection onPostSelect={handlePostSelect} />;
       case "photos":
@@ -55,7 +55,7 @@ function App() {
       case "admin":
         return <AdminPanel setActiveTab={handleTabChange} />;
       default:
-        return <HeroSection setActiveTab={handleTabChange} />;
+        return <HeroSection setActiveTab={handleTabChange} onPostSelect={handlePostSelect} />;
     }
   };
 
