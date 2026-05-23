@@ -607,6 +607,54 @@ export default function AdminPanel({ setActiveTab }) {
     addLog("CMS_SETTINGS", `Switched target model to ${modelName}.`, "sys");
   };
 
+  // Upload image to GitHub repository contents
+  const uploadImageToGitHub = async (file) => {
+    const cleanFileName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
+    const filename = `upload_${Date.now()}_${cleanFileName}`;
+    const path = `public/uploads/${filename}`;
+    addLog("API_UPLOAD", `Uploading image ${file.name} to GitHub at ${path}...`, "sys");
+
+    try {
+      // Convert to base64
+      const base64Content = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const base64 = reader.result.split(",")[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Put to GitHub REST API
+      const url = `https://api.github.com/repos/${username}/${repo}/contents/${path}`;
+      const response = await fetch(url, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "Accept": "application/vnd.github+json"
+        },
+        body: JSON.stringify({
+          message: `upload(assets): upload image ${file.name} via console`,
+          content: base64Content,
+          branch: branch
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || `HTTP ${response.status}`);
+      }
+
+      addLog("API_UPLOAD", `Uploaded successfully! File URL: uploads/${filename}`, "succ");
+      return `uploads/${filename}`;
+    } catch (err) {
+      addLog("API_UPLOAD_ERR", `Failed to upload image ${file.name}: ${err.message}`, "err");
+      throw err;
+    }
+  };
+
   return (
     <div className="admin-container">
       {/* Header Info */}
@@ -795,6 +843,116 @@ export default function AdminPanel({ setActiveTab }) {
                     添加新项 (Create)
                   </button>
                 </div>
+
+                {activeSubTab === "photos" && (
+                  /* Batch photos drag and drop uploader */
+                  <div 
+                    className="admin-form-group"
+                    style={{
+                      border: "2px dashed var(--neon-purple)",
+                      padding: "24px",
+                      borderRadius: "12px",
+                      textAlign: "center",
+                      background: "rgba(139, 92, 246, 0.02)",
+                      marginBottom: "20px",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease"
+                    }}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.style.borderColor = "var(--neon-pink)";
+                      e.currentTarget.style.background = "rgba(236, 72, 153, 0.05)";
+                    }}
+                    onDragLeave={(e) => {
+                      e.preventDefault();
+                      e.currentTarget.style.borderColor = "var(--neon-purple)";
+                      e.currentTarget.style.background = "rgba(139, 92, 246, 0.02)";
+                    }}
+                    onDrop={async (e) => {
+                      e.preventDefault();
+                      e.currentTarget.style.borderColor = "var(--neon-purple)";
+                      e.currentTarget.style.background = "rgba(139, 92, 246, 0.02)";
+                      const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/"));
+                      if (files.length === 0) return;
+                      
+                      setLoading(true);
+                      try {
+                        const newPhotosList = [...photos];
+                        for (let i = 0; i < files.length; i++) {
+                          const file = files[i];
+                          const relativeUrl = await uploadImageToGitHub(file);
+                          
+                          const newEntry = {
+                            id: `photo-${Date.now()}-${i}`,
+                            title: file.name.substring(0, file.name.lastIndexOf('.')) || "未命名随笔",
+                            category: "life",
+                            image: relativeUrl,
+                            description: "自动上传图片创建的日常随笔...",
+                            aspectRatio: "aspect-landscape",
+                            date: new Date().toISOString().split("T")[0],
+                            likes: 0
+                          };
+                          newPhotosList.unshift(newEntry);
+                        }
+                        
+                        await pushDataToGit(newPhotosList);
+                        addLog("CMS_BATCH", `Successfully batch created ${files.length} photo entries!`, "succ");
+                      } catch (err) {
+                        alert(`批量上传失败: ${err.message}`);
+                      } finally {
+                        setLoading(false);
+                      }
+                    }}
+                  >
+                    <input 
+                      type="file" 
+                      multiple 
+                      accept="image/*" 
+                      style={{ display: "none" }} 
+                      id="photos-batch-file-input"
+                      onChange={async (e) => {
+                        const files = Array.from(e.target.files).filter(f => f.type.startsWith("image/"));
+                        if (files.length === 0) return;
+                        
+                        setLoading(true);
+                        try {
+                          const newPhotosList = [...photos];
+                          for (let i = 0; i < files.length; i++) {
+                            const file = files[i];
+                            const relativeUrl = await uploadImageToGitHub(file);
+                            
+                            const newEntry = {
+                              id: `photo-${Date.now()}-${i}`,
+                              title: file.name.substring(0, file.name.lastIndexOf('.')) || "未命名随笔",
+                              category: "life",
+                              image: relativeUrl,
+                              description: "自动上传图片创建的日常随笔...",
+                              aspectRatio: "aspect-landscape",
+                              date: new Date().toISOString().split("T")[0],
+                              likes: 0
+                            };
+                            newPhotosList.unshift(newEntry);
+                          }
+                          await pushDataToGit(newPhotosList);
+                          addLog("CMS_BATCH", `Successfully batch created ${files.length} photo entries!`, "succ");
+                        } catch (err) {
+                          alert(`批量上传失败: ${err.message}`);
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}
+                    />
+                    <label htmlFor="photos-batch-file-input" style={{ cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                      <Image size={28} className="accent-pink" />
+                      <span className="admin-label" style={{ marginBottom: 0, color: "var(--text-primary)", fontWeight: 600 }}>
+                        拖放一个或多个图片到这里，或点击选择图片批量上传
+                      </span>
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                        图片将自动存入 GitHub 仓库中的 public/uploads/ 文件夹并批量追加到随笔中
+                      </span>
+                    </label>
+                  </div>
+                )}
 
                 <div className="admin-items-list">
                   {/* Render Posts */}
@@ -1111,13 +1269,58 @@ export default function AdminPanel({ setActiveTab }) {
                       </div>
 
                       <div className="admin-form-group">
-                        <label className="admin-label">文章正文内容 (Content HTML / Rich formatting)</label>
-                        <textarea 
-                          className="admin-textarea"
-                          value={editItem.content}
-                          onChange={(e) => handleFormChange("content", e.target.value)}
-                          required
-                        />
+                        <label className="admin-label">文章正文内容 (支持拖放单张或多张图片至输入框内自动上传并插入)</label>
+                        <div
+                          style={{
+                            border: "1px dashed rgba(255,255,255,0.15)",
+                            borderRadius: "8px",
+                            padding: "6px",
+                            background: "rgba(255,255,255,0.01)",
+                            transition: "all 0.2s ease"
+                          }}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.currentTarget.style.borderColor = "var(--neon-cyan)";
+                            e.currentTarget.style.background = "rgba(6, 182, 212, 0.03)";
+                          }}
+                          onDragLeave={(e) => {
+                            e.preventDefault();
+                            e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
+                            e.currentTarget.style.background = "rgba(255,255,255,0.01)";
+                          }}
+                          onDrop={async (e) => {
+                            e.preventDefault();
+                            e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
+                            e.currentTarget.style.background = "rgba(255,255,255,0.01)";
+                            const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith("image/"));
+                            if (files.length === 0) return;
+                            
+                            setLoading(true);
+                            try {
+                              let insertedText = "";
+                              for (const file of files) {
+                                const relativeUrl = await uploadImageToGitHub(file);
+                                insertedText += `\n<img src="${relativeUrl}" alt="${file.name.split('.')[0]}" style="max-width:100%; border-radius:8px; margin: 12px 0;" />\n`;
+                              }
+                              const currentVal = editItem.content || "";
+                              handleFormChange("content", currentVal + insertedText);
+                              addLog("CMS_POST_IMAGE", `Inserted ${files.length} images into post content.`, "succ");
+                            } catch (err) {
+                              alert(`图片上传失败: ${err.message}`);
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                        >
+                          <textarea 
+                            className="admin-textarea"
+                            value={editItem.content}
+                            onChange={(e) => handleFormChange("content", e.target.value)}
+                            placeholder="在此输入文章的 HTML/正文内容... 亦可直接在此处拖放一个或多个图片文件，自动上传并生成并拼入 <img> 标签！"
+                            required
+                            style={{ border: "none", background: "transparent", outline: "none", boxShadow: "none" }}
+                          />
+                        </div>
                       </div>
 
                       {/* HTML Live Preview Node */}
@@ -1171,14 +1374,83 @@ export default function AdminPanel({ setActiveTab }) {
                       </div>
 
                       <div className="admin-form-group">
-                        <label className="admin-label">图片 URL (网络路径或本地相对路径)</label>
+                        <label className="admin-label">图片 URL (输入路径，或拖放单张图片到下方虚线框上传)</label>
                         <input 
                           type="text" 
                           className="admin-input" 
                           value={editItem.image}
                           onChange={(e) => handleFormChange("image", e.target.value)}
+                          placeholder="uploads/filename.jpg"
                           required
+                          style={{ marginBottom: "8px" }}
                         />
+                        <div
+                          style={{
+                            border: "1px dashed rgba(255,255,255,0.15)",
+                            borderRadius: "8px",
+                            padding: "16px",
+                            textAlign: "center",
+                            background: "rgba(255,255,255,0.01)",
+                            cursor: "pointer",
+                            transition: "all 0.2s ease"
+                          }}
+                          onDragOver={(e) => {
+                            e.preventDefault();
+                            e.currentTarget.style.borderColor = "var(--neon-cyan)";
+                            e.currentTarget.style.background = "rgba(6, 182, 212, 0.05)";
+                          }}
+                          onDragLeave={(e) => {
+                            e.preventDefault();
+                            e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
+                            e.currentTarget.style.background = "rgba(255,255,255,0.01)";
+                          }}
+                          onDrop={async (e) => {
+                            e.preventDefault();
+                            e.currentTarget.style.borderColor = "rgba(255,255,255,0.15)";
+                            e.currentTarget.style.background = "rgba(255,255,255,0.01)";
+                            const file = e.dataTransfer.files[0];
+                            if (file && file.type.startsWith("image/")) {
+                              setLoading(true);
+                              try {
+                                const relativeUrl = await uploadImageToGitHub(file);
+                                handleFormChange("image", relativeUrl);
+                              } catch (err) {
+                                alert(`图片上传失败: ${err.message}`);
+                              } finally {
+                                setLoading(false);
+                              }
+                            }
+                          }}
+                        >
+                          <input 
+                            type="file" 
+                            accept="image/*" 
+                            style={{ display: "none" }} 
+                            id="photo-single-file-input"
+                            onChange={async (e) => {
+                              const file = e.target.files[0];
+                              if (file) {
+                                setLoading(true);
+                                try {
+                                  const relativeUrl = await uploadImageToGitHub(file);
+                                  handleFormChange("image", relativeUrl);
+                                } catch (err) {
+                                  alert(`图片上传失败: ${err.message}`);
+                                } finally {
+                                  setLoading(false);
+                                }
+                              }
+                            }}
+                          />
+                          <label htmlFor="photo-single-file-input" style={{ cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "6px" }}>
+                            <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                              {editItem.image ? `当前已选: ${editItem.image}` : "拖放单张图片到这里上传，或点击更换文件"}
+                            </span>
+                            <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+                              （文件将上传至 GitHub 仓库 public/uploads/）
+                            </span>
+                          </label>
+                        </div>
                       </div>
 
                       <div className="admin-grid-two-cols">
