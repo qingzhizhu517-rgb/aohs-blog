@@ -43,6 +43,64 @@ const EditIcon = ({ size = 14, className = "" }) => (
   </svg>
 );
 
+// Lightweight Regex-based Markdown compiler that outputs the styled HTML elements our blog CSS expects
+const compileMarkdownToHtml = (md) => {
+  if (!md) return "";
+  let html = md;
+
+  // Escape basic HTML tags to prevent broken nodes (except what we generate)
+  html = html
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // 1. Code blocks: ```lang ... ``` -> <pre><code class="lang">...</code></pre>
+  html = html.replace(/```(\w*)\n([\s\S]*?)\n```/g, (match, lang, code) => {
+    return `<pre><code class="language-${lang}">${code}</code></pre>`;
+  });
+
+  // 2. Headings: # -> h2, ## -> h2, ### -> h3
+  html = html.replace(/^#\s+(.*)$/gm, "<h2>$1</h2>");
+  html = html.replace(/^##\s+(.*)$/gm, "<h2>$1</h2>");
+  html = html.replace(/^###\s+(.*)$/gm, "<h3>$1</h3>");
+  html = html.replace(/^####\s+(.*)$/gm, "<h4>$1</h4>");
+
+  // 3. Unordered list items: - item -> <li>item</li>
+  html = html.replace(/^\s*-\s+(.*)$/gm, "<li>$1</li>");
+  html = html.replace(/^\s*\*\s+(.*)$/gm, "<li>$1</li>");
+  
+  // Wrap list items in <ul>
+  html = html.replace(/(<li>[\s\S]*?<\/li>)+/g, (match) => {
+    return `<ul>${match}</ul>`;
+  });
+
+  // 4. Bold and Italic
+  html = html.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/\*(.*?)\*/g, "<em>$1</em>");
+
+  // 5. Inline code: `code` -> <code>code</code>
+  html = html.replace(/`(.*?)`/g, "<code>$1</code>");
+
+  // 6. Links: [text](url) -> <a href="url" target="_blank" rel="noopener noreferrer">text</a>
+  html = html.replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+
+  // 7. Images: ![alt](url) -> <img src="url" alt="alt" />
+  html = html.replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" style="max-width:100%; border-radius:8px; margin: 12px 0;" />');
+
+  // 8. Paragraphs: split by double newlines and wrap in <p>, skipping heading/list tags
+  const blocks = html.split(/\n\n+/);
+  html = blocks.map(block => {
+    const trimmed = block.trim();
+    if (!trimmed) return "";
+    if (/^<(h2|h3|h4|ul|li|pre|img)/.test(trimmed)) {
+      return trimmed;
+    }
+    return `<p>${trimmed.replace(/\n/g, "<br />")}</p>`;
+  }).join("\n");
+
+  return html;
+};
+
 export default function AdminPanel({ setActiveTab }) {
   // Credentials and config states
   const [username, setUsername] = useState("");
@@ -288,6 +346,96 @@ export default function AdminPanel({ setActiveTab }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Parse Uploaded Markdown note file
+  const processMarkdownFile = (file) => {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const mdText = event.target.result;
+      
+      let title = "";
+      let excerpt = "";
+      let date = new Date().toISOString().split("T")[0];
+      let tags = [];
+      let markdownBody = mdText;
+
+      // Extract Front Matter headers if present
+      if (mdText.startsWith("---")) {
+        const parts = mdText.split("---");
+        if (parts.length >= 3) {
+          const frontMatterText = parts[1];
+          markdownBody = parts.slice(2).join("---").trim();
+          
+          const lines = frontMatterText.split("\n");
+          lines.forEach(line => {
+            const colonIdx = line.indexOf(":");
+            if (colonIdx !== -1) {
+              const key = line.substring(0, colonIdx).trim().toLowerCase();
+              let val = line.substring(colonIdx + 1).trim();
+              if (val.startsWith('"') && val.endsWith('"')) val = val.slice(1, -1);
+              if (val.startsWith("'") && val.endsWith("'")) val = val.slice(1, -1);
+
+              if (key === "title") title = val;
+              else if (key === "excerpt" || key === "desc") excerpt = val;
+              else if (key === "date") date = val;
+              else if (key === "tags") {
+                if (val.startsWith("[") && val.endsWith("]")) {
+                  tags = val.slice(1, -1).split(",").map(t => t.trim().replace(/['"]/g, ""));
+                } else {
+                  tags = val.split(",").map(t => t.trim());
+                }
+              }
+            }
+          });
+        }
+      }
+
+      // Auto resolve headers if missed in front-matter
+      if (!title) {
+        const titleMatch = markdownBody.match(/^#\s+(.*)$/m);
+        if (titleMatch) {
+          title = titleMatch[1];
+          markdownBody = markdownBody.replace(/^#\s+.*$/m, "").trim(); // strip title heading
+        } else {
+          title = file.name.replace(/\.md$/, "");
+        }
+      }
+
+      if (!excerpt) {
+        const cleanText = markdownBody
+          .replace(/[#*`\[\]\(\)]/g, "")
+          .replace(/\n+/g, " ")
+          .substring(0, 100)
+          .trim();
+        excerpt = cleanText ? `${cleanText}...` : "文章内容摘要...";
+      }
+
+      // Compile Markdown text to system HTML
+      const htmlContent = compileMarkdownToHtml(markdownBody);
+
+      // Create a slugified post ID from title
+      const pinyinOrSlug = title.toLowerCase()
+        .replace(/[^a-z0-9\u4e00-\u9fa5]/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+      const uniqueId = `post-${pinyinOrSlug || Date.now()}`;
+
+      setEditItem(prev => ({
+        ...prev,
+        id: uniqueId,
+        title,
+        excerpt,
+        date,
+        tags,
+        content: htmlContent
+      }));
+
+      setPreviewContent(htmlContent);
+      addLog("CMS_MD", `Parsed Markdown successfully: "${title}" (ID: ${uniqueId})`, "succ");
+    };
+
+    reader.readAsText(file);
   };
 
   // Open editor form for new item
@@ -684,6 +832,61 @@ export default function AdminPanel({ setActiveTab }) {
                   {/* EDIT POSTS FORM */}
                   {activeSubTab === "posts" && editItem && (
                     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                      
+                      {/* Markdown File Upload Drag & Drop Area */}
+                      <div 
+                        className="admin-form-group"
+                        style={{
+                          border: "2px dashed rgba(6, 182, 212, 0.2)",
+                          padding: "20px",
+                          borderRadius: "10px",
+                          textAlign: "center",
+                          background: "rgba(6, 182, 212, 0.02)",
+                          transition: "all 0.2s ease",
+                          marginBottom: "8px"
+                        }}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.style.borderColor = "var(--neon-pink)";
+                          e.currentTarget.style.background = "rgba(236, 72, 153, 0.05)";
+                        }}
+                        onDragLeave={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.style.borderColor = "rgba(6, 182, 212, 0.2)";
+                          e.currentTarget.style.background = "rgba(6, 182, 212, 0.02)";
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          e.currentTarget.style.borderColor = "rgba(6, 182, 212, 0.2)";
+                          e.currentTarget.style.background = "rgba(6, 182, 212, 0.02)";
+                          const file = e.dataTransfer.files[0];
+                          if (file && file.name.endsWith(".md")) {
+                            processMarkdownFile(file);
+                          } else {
+                            addLog("CMS_MD_ERR", "Only .md files are supported for import.", "err");
+                          }
+                        }}
+                      >
+                        <input 
+                          type="file" 
+                          accept=".md" 
+                          style={{ display: "none" }} 
+                          id="markdown-file-input"
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) processMarkdownFile(file);
+                          }}
+                        />
+                        <label htmlFor="markdown-file-input" style={{ cursor: "pointer", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+                          <BookOpen size={24} className="accent-cyan" />
+                          <span className="admin-label" style={{ marginBottom: 0, color: "var(--text-primary)", fontWeight: 600 }}>
+                            拖放 Markdown (.md) 笔记到这里，或点击浏览选择文件导入
+                          </span>
+                          <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "var(--font-mono)" }}>
+                            支持 [YAML Header] 自动映射元数据，Markdown 正文将自动转义编译为 HTML
+                          </span>
+                        </label>
+                      </div>
                       <div className="admin-grid-two-cols">
                         <div className="admin-form-group">
                           <label className="admin-label">文章 ID (唯一标志，英文字符)</label>
