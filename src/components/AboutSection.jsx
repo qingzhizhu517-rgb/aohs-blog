@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { User, Briefcase, GraduationCap, Mail, Globe, Sparkles, Cpu, Layout, BrainCircuit, Lightbulb, Compass, Award } from "lucide-react";
 import { skills } from "../data/skills";
 import { about } from "../data/about";
+import { resolveImageUrl } from "../utils/imageHelper";
 
 export default function AboutSection() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -71,12 +72,12 @@ export default function AboutSection() {
                   </defs>
                 </svg>
               ) : about.avatars.length === 1 ? (
-                <img src={about.avatars[0]} alt={about.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
+                <img src={resolveImageUrl(about.avatars[0])} alt={about.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
               ) : (
                 <div className="avatar-carousel-container">
                   {about.avatars.map((av, idx) => (
                     <div key={idx} className={`avatar-carousel-slide ${currentSlide === idx ? "active" : ""}`}>
-                      <img src={av} alt={about.name} className="avatar-carousel-image" />
+                      <img src={resolveImageUrl(av)} alt={about.name} className="avatar-carousel-image" />
                     </div>
                   ))}
                 </div>

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { photos } from "../data/photos";
 import { X, Calendar, Camera, Eye, Heart } from "lucide-react";
+import { resolveImageUrl } from "../utils/imageHelper";
 
 export default function PhotoDiary() {
   const [selectedPhoto, setSelectedPhoto] = useState(null);
@@ -45,7 +46,7 @@ export default function PhotoDiary() {
             {/* Image Wrapper */}
             <div className="photo-img-wrapper">
               <img
-                src={photo.imageUrl || photo.image}
+                src={resolveImageUrl(photo.imageUrl || photo.image)}
                 alt={photo.title}
                 className="photo-img"
                 loading="lazy"
@@ -97,7 +98,7 @@ export default function PhotoDiary() {
             <div className="lightbox-grid">
               {/* Image Left */}
               <div className="lightbox-image-side">
-                <img src={selectedPhoto.imageUrl || selectedPhoto.image} alt={selectedPhoto.title} />
+                <img src={resolveImageUrl(selectedPhoto.imageUrl || selectedPhoto.image)} alt={selectedPhoto.title} />
               </div>
 
               {/* Text Right */}

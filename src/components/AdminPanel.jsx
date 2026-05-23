@@ -8,6 +8,7 @@ import { photos as localPhotos } from "../data/photos";
 import { projects as localProjects } from "../data/projects";
 import { aiConfig as localAiConfig } from "../data/aiConfig";
 import { about as localAbout } from "../data/about";
+import { cacheLocalPreview, resolveImageUrl, resolveImagePreviewsInHtml } from "../utils/imageHelper";
 
 // Inline Github Icon SVG to avoid missing icon errors
 const GithubIcon = ({ size = 16, className = "" }) => (
@@ -100,7 +101,7 @@ const compileMarkdownToHtml = (md) => {
     return `<p>${trimmed.replace(/\n/g, "<br />")}</p>`;
   }).join("\n");
 
-  return html;
+  return resolveImagePreviewsInHtml(html);
 };
 
 export default function AdminPanel({ setActiveTab }) {
@@ -629,24 +630,34 @@ export default function AdminPanel({ setActiveTab }) {
     addLog("CMS_SETTINGS", `Switched target model to ${modelName}.`, "sys");
   };
 
-  // Upload image to GitHub repository contents
+  // Upload image to GitHub repository contents (with local-first caching)
   const uploadImageToGitHub = async (file) => {
     const cleanFileName = file.name.replace(/[^a-zA-Z0-9.]/g, "_");
     const filename = `upload_${Date.now()}_${cleanFileName}`;
     const path = `public/uploads/${filename}`;
-    addLog("API_UPLOAD", `Uploading image ${file.name} to GitHub at ${path}...`, "sys");
+    const relativeUrl = `uploads/${filename}`;
+    
+    addLog("API_UPLOAD", `Processing image ${file.name} (local preview cached)...`, "sys");
 
     try {
-      // Convert to base64
-      const base64Content = await new Promise((resolve, reject) => {
+      // Read file as Base64 Data URL
+      const base64DataUrl = await new Promise((resolve, reject) => {
         const reader = new FileReader();
-        reader.onload = () => {
-          const base64 = reader.result.split(",")[1];
-          resolve(base64);
-        };
+        reader.onload = () => resolve(reader.result);
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
+
+      // Cache the preview locally so we can view it immediately
+      cacheLocalPreview(relativeUrl, base64DataUrl);
+
+      // If GitHub integration is not configured, complete locally
+      if (!username || !repo || !token) {
+        addLog("API_UPLOAD", `GitHub credentials not configured. Cached ${file.name} locally only.`, "warn");
+        return relativeUrl;
+      }
+
+      const base64Content = base64DataUrl.split(",")[1];
 
       // Put to GitHub REST API
       const url = `https://api.github.com/repos/${username}/${repo}/contents/${path}`;
@@ -670,10 +681,11 @@ export default function AdminPanel({ setActiveTab }) {
       }
 
       addLog("API_UPLOAD", `Uploaded successfully! File URL: uploads/${filename}`, "succ");
-      return `uploads/${filename}`;
+      return relativeUrl;
     } catch (err) {
-      addLog("API_UPLOAD_ERR", `Failed to upload image ${file.name}: ${err.message}`, "err");
-      throw err;
+      addLog("API_UPLOAD_ERR", `Failed to upload image ${file.name} to GitHub: ${err.message}. Using local preview cache.`, "warn");
+      // Still return the relativeUrl since we cached the preview locally
+      return relativeUrl;
     }
   };
 
@@ -1191,7 +1203,7 @@ export default function AdminPanel({ setActiveTab }) {
                     <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginBottom: "12px" }}>
                       {aboutState.avatars?.map((av, idx) => (
                         <div key={idx} style={{ position: "relative", width: "80px", height: "80px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)", overflow: "hidden" }}>
-                          <img src={av} alt="avatar-slide" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                          <img src={resolveImageUrl(av)} alt="avatar-slide" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
                           <button 
                             type="button" 
                             style={{ position: "absolute", top: "2px", right: "2px", background: "rgba(239, 68, 68, 0.9)", border: "none", color: "white", borderRadius: "50%", width: "18px", height: "18px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer", fontSize: "10px" }}
@@ -1828,7 +1840,7 @@ export default function AdminPanel({ setActiveTab }) {
                         <div className="admin-form-group" style={{ textAlign: "center" }}>
                           <label className="admin-label" style={{ textAlign: "left" }}>图片效果预览 (Image Preview)</label>
                           <img 
-                            src={editItem.image} 
+                            src={resolveImageUrl(editItem.image)} 
                             alt="preview" 
                             style={{ maxWidth: "200px", maxHeight: "150px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.1)" }}
                             onError={(e) => { e.target.style.display = "none"; }} 

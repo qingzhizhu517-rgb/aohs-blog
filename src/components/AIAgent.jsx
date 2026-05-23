@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { Send, Terminal, Bot, User, Cpu, Sparkles, AlertTriangle } from "lucide-react";
 import { posts } from "../data/posts";
 import { aiConfig } from "../data/aiConfig";
+import { resolveImagePreviewsInHtml } from "../utils/imageHelper";
 
 export default function AIAgent({ setActiveTab, onPostSelect }) {
   const [messages, setMessages] = useState([
@@ -359,7 +360,7 @@ ${matchedContext ? matchedContext : "（目前博客中还没有发布文章，�
                   <div
                     className="chat-bubble-content"
                     onClick={handleBubbleClick}
-                    dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.text) }}
+                    dangerouslySetInnerHTML={{ __html: resolveImagePreviewsInHtml(renderMarkdown(msg.text)) }}
                   />
                 </div>
                 {msg.sender === "user" && (

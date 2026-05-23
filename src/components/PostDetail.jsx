@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ArrowLeft, ThumbsUp, Calendar, Clock, Eye, Send, Share2, CornerDownRight } from "lucide-react";
+import { resolveImagePreviewsInHtml } from "../utils/imageHelper";
 
 export default function PostDetail({ post, onBack }) {
   const [likes, setLikes] = useState(post.likes);
@@ -182,7 +183,7 @@ export default function PostDetail({ post, onBack }) {
         <div className="post-content-glass">
           <div
             className="markdown-body-custom"
-            dangerouslySetInnerHTML={{ __html: post.content }}
+            dangerouslySetInnerHTML={{ __html: resolveImagePreviewsInHtml(post.content) }}
           />
 
           {/* Divider line */}
