@@ -1,7 +1,10 @@
 export const about = {
   "name": "Aohs",
   "tagline": "个人创意开发者 / 极致清晰度追求者",
-  "avatars": [],
+  "avatars": [
+    "uploads/upload_1779512876540_ab6d3a17760fdf2a1e2660e6fb48c95c.jpg",
+    "uploads/upload_1779512889257_070b67839eda49a43965863360430e83.jpg"
+  ],
   "bio": [
     "坚信“工欲善其事，必先利其器”。在不断的项目迭代中，我构建了一套属于自己的高效开发与探索闭环。",
     "作为 AI 全力驱动时代的践行者，我深入探索大语言模型（LLM）与实际工作流的结合，追求极简主义（Minimalism）与用户直觉设计，拒绝冗余，让界面回归内容本身。"
