@@ -42,6 +42,7 @@ export default function Navbar({ activeTab, setActiveTab }) {
     { id: "blog", label: "博客" },
     { id: "photos", label: "相册日记" },
     { id: "projects", label: "开源项目" },
+    { id: "agent", label: "AI 智能" },
     { id: "about", label: "关于" },
   ];
 

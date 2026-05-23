@@ -6,6 +6,7 @@ import {
 import { posts as localPosts } from "../data/posts";
 import { photos as localPhotos } from "../data/photos";
 import { projects as localProjects } from "../data/projects";
+import { aiConfig as localAiConfig } from "../data/aiConfig";
 
 // Inline Github Icon SVG to avoid missing icon errors
 const GithubIcon = ({ size = 16, className = "" }) => (
@@ -126,6 +127,7 @@ export default function AdminPanel({ setActiveTab }) {
 
   // HTML content preview state
   const [previewContent, setPreviewContent] = useState("");
+  const [aiConfigState, setAiConfigState] = useState({ apiKey: "", endpoint: "" });
 
   const consoleEndRef = useRef(null);
 
@@ -217,6 +219,7 @@ export default function AdminPanel({ setActiveTab }) {
       case "posts": return "src/data/posts.js";
       case "photos": return "src/data/photos.js";
       case "projects": return "src/data/projects.js";
+      case "settings": return "src/data/aiConfig.js";
       default: return "src/data/posts.js";
     }
   };
@@ -244,22 +247,36 @@ export default function AdminPanel({ setActiveTab }) {
       const fileData = await response.json();
       const contentRaw = decodeBase64(fileData.content);
 
-      // Parse the JS file exporting an array
-      const startIdx = contentRaw.indexOf("[");
-      const endIdx = contentRaw.lastIndexOf("]");
+      if (activeSubTab === "settings") {
+        const startIdx = contentRaw.indexOf("{");
+        const endIdx = contentRaw.lastIndexOf("}");
 
-      if (startIdx === -1 || endIdx === -1) {
-        throw new Error("Unable to parse file structure. Make sure it exports an array enclosed in [].");
+        if (startIdx === -1 || endIdx === -1) {
+          throw new Error("Unable to parse config file structure. Make sure it exports an object enclosed in {}.");
+        }
+
+        const jsonText = contentRaw.substring(startIdx, endIdx + 1);
+        const parsedObject = JSON.parse(jsonText);
+        setAiConfigState(parsedObject);
+        addLog("API_GET", `Successfully loaded AI settings configuration from GitHub.`, "succ");
+      } else {
+        // Parse the JS file exporting an array
+        const startIdx = contentRaw.indexOf("[");
+        const endIdx = contentRaw.lastIndexOf("]");
+
+        if (startIdx === -1 || endIdx === -1) {
+          throw new Error("Unable to parse file structure. Make sure it exports an array enclosed in [].");
+        }
+
+        const jsonText = contentRaw.substring(startIdx, endIdx + 1);
+        const parsedArray = JSON.parse(jsonText);
+
+        if (activeSubTab === "posts") setPosts(parsedArray);
+        if (activeSubTab === "photos") setPhotos(parsedArray);
+        if (activeSubTab === "projects") setProjects(parsedArray);
+
+        addLog("API_GET", `Successfully loaded ${parsedArray.length} items from GitHub file (SHA: ${fileData.sha.substring(0, 7)}).`, "succ");
       }
-
-      const jsonText = contentRaw.substring(startIdx, endIdx + 1);
-      const parsedArray = JSON.parse(jsonText);
-
-      if (activeSubTab === "posts") setPosts(parsedArray);
-      if (activeSubTab === "photos") setPhotos(parsedArray);
-      if (activeSubTab === "projects") setProjects(parsedArray);
-
-      addLog("API_GET", `Successfully loaded ${parsedArray.length} items from GitHub file (SHA: ${fileData.sha.substring(0, 7)}).`, "succ");
     } catch (err) {
       addLog("API_GET_ERR", err.message, "err");
       addLog("FALLBACK", "Loading default local data module fallback.", "warn");
@@ -271,6 +288,8 @@ export default function AdminPanel({ setActiveTab }) {
         setPhotos(localPhotos);
       } else if (activeSubTab === "projects") {
         setProjects(localProjects);
+      } else if (activeSubTab === "settings") {
+        setAiConfigState(localAiConfig);
       }
     } finally {
       setLoading(false);
@@ -278,7 +297,7 @@ export default function AdminPanel({ setActiveTab }) {
   };
 
   // Push updated list to GitHub API
-  const pushDataToGit = async (updatedArray) => {
+  const pushDataToGit = async (updatedArray, updatedConfig = null) => {
     setLoading(true);
     const path = getFilePath();
     addLog("API_PUT", `Preparing to write ${path} to remote branch ${branch}...`, "sys");
@@ -302,12 +321,20 @@ export default function AdminPanel({ setActiveTab }) {
       addLog("API_PUT", `SHA resolved: ${fileSha.substring(0, 7)}. Committing...`, "sys");
 
       // 2. Format JS file string
-      const varName = activeSubTab;
-      const fileString = `export const ${varName} = ${JSON.stringify(updatedArray, null, 2)};\n`;
+      let fileString = "";
+      if (activeSubTab === "settings") {
+        fileString = `export const aiConfig = ${JSON.stringify(updatedConfig, null, 2)};\n`;
+      } else {
+        const varName = activeSubTab;
+        fileString = `export const ${varName} = ${JSON.stringify(updatedArray, null, 2)};\n`;
+      }
 
       // 3. PUT Commit to GitHub
       const putUrl = `https://api.github.com/repos/${username}/${repo}/contents/${path}`;
-      const commitMessage = `feat(cms): update ${varName} database via visual console`;
+      const commitMessage = activeSubTab === "settings"
+        ? `feat(cms): update AI API configurations`
+        : `feat(cms): update ${activeSubTab} database via visual console`;
+
       const putBody = {
         message: commitMessage,
         content: encodeBase64(fileString),
@@ -334,12 +361,16 @@ export default function AdminPanel({ setActiveTab }) {
       addLog("API_PUT", `Commit success! Commit SHA: ${putResult.commit.sha.substring(0, 7)}`, "succ");
       
       // Update local states
-      if (activeSubTab === "posts") setPosts(updatedArray);
-      if (activeSubTab === "photos") setPhotos(updatedArray);
-      if (activeSubTab === "projects") setProjects(updatedArray);
+      if (activeSubTab === "settings") {
+        setAiConfigState(updatedConfig);
+      } else {
+        if (activeSubTab === "posts") setPosts(updatedArray);
+        if (activeSubTab === "photos") setPhotos(updatedArray);
+        if (activeSubTab === "projects") setProjects(updatedArray);
 
-      setIsEditing(false);
-      setEditItem(null);
+        setIsEditing(false);
+        setEditItem(null);
+      }
     } catch (err) {
       addLog("API_PUT_ERR", `Push failed: ${err.message}`, "err");
       alert(`保存失败: ${err.message}`);
@@ -552,6 +583,12 @@ export default function AdminPanel({ setActiveTab }) {
     pushDataToGit(updatedArray);
   };
 
+  // Submit AI settings form
+  const handleSettingsSubmit = (e) => {
+    e.preventDefault();
+    pushDataToGit(null, aiConfigState);
+  };
+
   return (
     <div className="admin-container">
       {/* Header Info */}
@@ -681,6 +718,13 @@ export default function AdminPanel({ setActiveTab }) {
                 <Folder size={16} />
                 项目仓库 (Projects)
               </button>
+              <button 
+                className={`admin-nav-btn ${activeSubTab === "settings" ? "active" : ""}`}
+                onClick={() => { setActiveSubTab("settings"); setIsEditing(false); }}
+              >
+                <Key size={16} />
+                AI 设定 (AI Settings)
+              </button>
             </div>
 
             <div className="admin-nav-card">
@@ -719,7 +763,7 @@ export default function AdminPanel({ setActiveTab }) {
               </div>
             )}
 
-            {!isEditing ? (
+            {!isEditing && activeSubTab !== "settings" ? (
               /* Lists management mode */
               <>
                 <div className="admin-panel-header">
@@ -815,6 +859,47 @@ export default function AdminPanel({ setActiveTab }) {
                     </div>
                   )}
                 </div>
+              </>
+            ) : activeSubTab === "settings" ? (
+              /* Settings form mode */
+              <>
+                <div className="admin-panel-header">
+                  <h3 className="admin-panel-title">AI 智能设定 (AI Configuration)</h3>
+                </div>
+                <form onSubmit={handleSettingsSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <div className="admin-form-group">
+                    <label className="admin-label">Gemini API 密钥 (Gemini API Key)</label>
+                    <input 
+                      type="password" 
+                      className="admin-input" 
+                      placeholder="AI_API_KEY (AI 智能对话所用)"
+                      value={aiConfigState.apiKey}
+                      onChange={(e) => setAiConfigState(prev => ({ ...prev, apiKey: e.target.value }))}
+                      required
+                    />
+                    <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", fontFamily: "var(--font-mono)", marginTop: "4px", display: "block" }}>
+                      建议使用无扣费信用卡的免费额度 API Key (15 RPM / 1500 RPD)，避免密钥暴露带来的经济风险。
+                    </span>
+                  </div>
+
+                  <div className="admin-form-group">
+                    <label className="admin-label">Gemini 接口端点 (API Endpoint)</label>
+                    <input 
+                      type="text" 
+                      className="admin-input" 
+                      value={aiConfigState.endpoint}
+                      onChange={(e) => setAiConfigState(prev => ({ ...prev, endpoint: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  <div className="form-button-row">
+                    <button type="submit" className="cyber-btn btn-primary" style={{ padding: "10px 20px" }}>
+                      <Save size={14} style={{ marginRight: "8px" }} />
+                      保存并提交配置 Git Commit (Save Config)
+                    </button>
+                  </div>
+                </form>
               </>
             ) : (
               /* Editing Node Form fields */

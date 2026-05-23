@@ -7,6 +7,7 @@ import PostDetail from "./components/PostDetail";
 import PhotoDiary from "./components/PhotoDiary";
 import ProjectsSection from "./components/ProjectsSection";
 import AboutSection from "./components/AboutSection";
+import AIAgent from "./components/AIAgent";
 import AdminPanel from "./components/AdminPanel";
 import Footer from "./components/Footer";
 
@@ -49,6 +50,8 @@ function App() {
         return <ProjectsSection />;
       case "about":
         return <AboutSection />;
+      case "agent":
+        return <AIAgent setActiveTab={handleTabChange} onPostSelect={handlePostSelect} />;
       case "admin":
         return <AdminPanel setActiveTab={handleTabChange} />;
       default:
