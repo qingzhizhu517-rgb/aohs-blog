@@ -1,4 +1,4 @@
 export const aiConfig = {
-  apiKey: "",
-  endpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+  "apiKey": "AIzaSyC9vQmSFA9DCs5-JNprCpO5QPKVwBH_xyQ",
+  "endpoint": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash:generateContent"
 };
